@@ -2,16 +2,15 @@ require 'rubygems'
 require 'active_support/all'
 
 class Time
-  def self.diff(start_date, end_date, format_string='%y, %M, %w, %d and %h:%m:%s')
+  def self.diff(start_date, end_date, cumulative=false, format_string='%y, %M, %w, %d and %h:%m:%s')
     start_time = start_date.to_time if start_date.respond_to?(:to_time)
     end_time = end_date.to_time if end_date.respond_to?(:to_time)
     distance_in_seconds = ((end_time - start_time).abs).round
 
-    components = get_time_diff_components(%w(year month week day hour minute second), distance_in_seconds)
-    time_diff_components = {:year => components[0], :month => components[1], :week => components[2], :day => components[3], :hour => components[4], :minute => components[5], :second => components[6]}
-
     formatted_intervals = get_formatted_intervals(format_string)
-    components = get_time_diff_components(formatted_intervals, distance_in_seconds)
+    components = get_time_diff_components(formatted_intervals, distance_in_seconds, cumulative)
+    time_diff_components = {:year => components[0], :month => components[1], :week => components[2], :day => components[3], :hour => components[4], :minute => components[5], :second => components[6]}
+    
     formatted_components = create_formatted_component_hash(components, formatted_intervals)
     format_string = remove_format_string_for_zero_components(formatted_components, format_string)
     time_diff_components[:diff] = format_date_time(formatted_components, format_string) unless format_string.nil?
@@ -40,11 +39,11 @@ class Time
     formatted_components
   end
 
-  def self.get_time_diff_components(intervals, distance_in_seconds)
+  def self.get_time_diff_components(intervals, distance_in_seconds, cumulative)
     components = []
     intervals.each do |interval|
         component = (distance_in_seconds / 1.send(interval)).floor
-        distance_in_seconds -= component.send(interval)
+        distance_in_seconds -= component.send(interval) unless cumulative
         components << component
     end
     components
@@ -84,4 +83,15 @@ class Time
   def Time.format_digit(number)
     return '%02d' % number
   end
+  
+  def Time.print_pretty_hash(time_diff_components)
+    time_diff_components.each do |key, value|
+      if key == :diff
+        puts value
+      else
+        puts key.to_s.capitalize.ljust(10) + "=>" + value.to_s.rjust(15)
+      end
+    end
+  end
+  
 end
